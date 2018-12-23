@@ -11,7 +11,16 @@ class World {
     this.frame = null;
     this.bird = null;
     this.blocks = null;
-    this.score = null;
+  }
+
+  start() {
+    this.init();
+    this.draw();
+    window.onkeypress = (e) => {
+      if (e.keyCode === 32) {
+        this.bird.yVel = -5;
+      }
+    };
   }
 
   generateRandomOpening() {
@@ -19,9 +28,18 @@ class World {
     const width = 30;
     const gap = random(125, 150);
 
-    const topBlock = new Rectangle(this.ctx, width, height - (gap / 2), this.width);
+    const topBlock = new Rectangle(this.ctx, {
+      width,
+      height: height - (gap / 2),
+      x: this.width,
+    });
     topBlock.xVel = -2;
-    const bottomBlock = new Rectangle(this.ctx, width, this.height, this.width, height + (gap / 2));
+    const bottomBlock = new Rectangle(this.ctx, {
+      width,
+      height: this.height,
+      x: this.width,
+      y: height + (gap / 2),
+    });
     bottomBlock.xVel = -2;
     return [topBlock, bottomBlock];
   }
@@ -33,22 +51,14 @@ class World {
   init() {
     window.cancelAnimationFrame(this.currentRequestId);
     this.frame = 0;
-    this.bird = new Square(this.ctx, 20, this.width / 10, this.height / 2);
+    this.bird = new Square(this.ctx, { length: 20, x: this.width / 10, y: this.height / 2 });
     this.bird.addGravity();
     this.blocks = [];
     this.blocks.push(...this.generateRandomOpening());
     this.score = 0;
-
-    window.onkeypress = (e) => {
-      if (e.keyCode === 32) {
-        this.bird.yVel = -5;
-      }
-    };
   }
 
-  draw() {
-    this.frame++;
-    this.clear();
+  calc() {
     this.bird.calc();
     this.blocks.forEach(block => block.calc());
 
@@ -63,18 +73,24 @@ class World {
       this.bird.y = 0;
     }
 
+    // generate new openings
+    if (this.frame % 100 === 0) {
+      console.log('generating new block');
+      this.blocks.push(...this.generateRandomOpening());
+    }
+  }
+
+  draw() {
+    this.frame++;
+    this.clear();
+    this.calc();
+
     // collisions
     const gameOver = this.blocks.some(block => isColliding(this.bird, block));
     if (gameOver) {
       this.init();
       this.draw();
       return;
-    }
-
-    // generate new openings
-    if (this.frame % 100 === 0) {
-      console.log('generating new block');
-      this.blocks.push(...this.generateRandomOpening());
     }
 
     // increment score

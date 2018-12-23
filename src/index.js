@@ -1,4 +1,4 @@
-import World from './World';
+import GameController from './GameController';
 
 const WIDTH = 500;
 const HEIGHT = 300;
@@ -8,6 +8,5 @@ canvas.width = WIDTH;
 canvas.height = HEIGHT;
 const ctx = canvas.getContext('2d');
 
-const world = new World(ctx, WIDTH, HEIGHT);
-world.init();
-world.draw();
+const game = new GameController(ctx, WIDTH, HEIGHT);
+game.start();
