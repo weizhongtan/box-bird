@@ -7,3 +7,8 @@ export function isColliding(rect1, rect2) {
   }
   return false;
 }
+
+export function random(lower, upper) {
+  const range = upper - lower;
+  return Math.floor(Math.random() * range) + lower;
+}
