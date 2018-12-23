@@ -12,6 +12,10 @@ class Shape {
             this.yVel += 0.25;
             this.y += this.yVel;
         }
+        this.x += this.xVel;
+    };
+    draw = () => {
+        this.c.fillRect(this.x, this.y, this.width, this.height);
     };
     addGravity = () => {
         this._hasGravity = true;

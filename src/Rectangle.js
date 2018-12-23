@@ -6,9 +6,6 @@ class Rectangle extends Shape {
         this.width = width;
         this.height = height;
     }
-    draw = () => {
-        this.c.fillRect(this.x, this.y, this.width, this.height);
-    };
 }
 
 export default Rectangle;
