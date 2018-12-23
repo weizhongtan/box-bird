@@ -8,6 +8,13 @@ export function isColliding(rect1, rect2) {
   return false;
 }
 
+export function isRightOf(rect1, rect2) {
+  if (rect2.x + rect2.width < rect1.x) {
+    return true;
+  }
+  return false;
+}
+
 export function random(lower, upper) {
   const range = upper - lower;
   return Math.floor(Math.random() * range) + lower;

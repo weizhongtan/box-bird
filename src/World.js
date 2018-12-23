@@ -1,6 +1,6 @@
 import Square from './Square';
 import Rectangle from './Rectangle';
-import { isColliding, random } from './utils';
+import { isColliding, isRightOf, random } from './utils';
 
 class World {
   constructor(context, width, height) {
@@ -11,12 +11,13 @@ class World {
     this.frame = null;
     this.bird = null;
     this.blocks = null;
+    this.score = null;
   }
 
   generateRandomOpening() {
     const height = random(this.height / 3, (this.height / 3) * 2);
     const width = 30;
-    const gap = random(100, 150);
+    const gap = random(125, 150);
 
     const topBlock = new Rectangle(this.ctx, width, height - (gap / 2), this.width);
     topBlock.xVel = -2;
@@ -36,6 +37,7 @@ class World {
     this.bird.addGravity();
     this.blocks = [];
     this.blocks.push(...this.generateRandomOpening());
+    this.score = 0;
 
     window.onkeypress = (e) => {
       if (e.keyCode === 32) {
@@ -74,6 +76,19 @@ class World {
       console.log('generating new block');
       this.blocks.push(...this.generateRandomOpening());
     }
+
+    // increment score
+    const numLeft = this.blocks.reduce((sum, block) => {
+      if (isRightOf(this.bird, block)) {
+        return sum + 1;
+      }
+      return sum;
+    }, 0);
+
+    // half because 2 blocks per opening
+    this.score = numLeft / 2;
+    this.ctx.font = '50px sans-serif';
+    this.ctx.fillText(this.score, 10, 50);
 
     this.bird.draw();
     this.blocks.forEach(t => t.draw());
