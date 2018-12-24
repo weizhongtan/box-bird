@@ -1,4 +1,4 @@
-import Square from './Square';
+import Player from './Player';
 import Opening from './Opening';
 import { isColliding, isRightOf, random } from './utils';
 
@@ -16,12 +16,16 @@ class World {
 
   start() {
     this.init();
-    this.draw();
+    this.tick();
     window.onkeypress = (e) => {
       if (e.keyCode === 32) {
-        this.player.yVel = -5;
+        this.player.getBody().yVel = -5;
       }
     };
+  }
+
+  stop() {
+    window.cancelAnimationFrame(this.currentRequestId);
   }
 
   generateRandomOpening() {
@@ -42,8 +46,7 @@ class World {
   init() {
     window.cancelAnimationFrame(this.currentRequestId);
     this.frame = 0;
-    this.player = new Square(this.ctx, { length: 20, x: this.width / 10, y: this.height / 2 });
-    this.player.addGravity();
+    this.player = new Player(this.ctx, { x: this.width / 10, y: this.height / 2 });
     this.openings = [];
     this.openings.push(this.generateRandomOpening());
     this.score = 0;
@@ -54,14 +57,14 @@ class World {
     this.openings.forEach(o => o.calc());
 
     // lower boundary
-    if (this.player.y + this.player.yVel + this.player.height > this.height) {
-      this.player.yVel = 0;
-      this.player.y = this.height - this.player.height;
+    if (this.player.getBody().y + this.player.getBody().yVel + this.player.getBody().height > this.height) {
+      this.player.getBody().yVel = 0;
+      this.player.getBody().y = this.height - this.player.getBody().height;
     }
 
     // upper boundary
-    if (this.player.y < 0) {
-      this.player.y = 0;
+    if (this.player.getBody().y < 0) {
+      this.player.getBody().y = 0;
     }
 
     // generate new openings
@@ -71,26 +74,14 @@ class World {
     }
   }
 
-  draw() {
+  tick() {
     this.frame++;
     this.clear();
     this.calc();
 
-    // collisions
-    const gameOver = this.openings.some((opening) => {
-      const topBlock = opening.getTop();
-      const bottomBlock = opening.getBottom();
-      return isColliding(this.player, topBlock) || isColliding(this.player, bottomBlock);
-    });
-    if (gameOver) {
-      this.init();
-      this.draw();
-      return;
-    }
-
     // increment score if past bird
     const leftMostBlock = this.openings[0].getTop();
-    if (isRightOf(this.player, leftMostBlock) && !this.justPassedOpening) {
+    if (isRightOf(this.player.getBody(), leftMostBlock) && !this.justPassedOpening) {
       this.score++;
       this.justPassedOpening = true;
     }
@@ -106,7 +97,19 @@ class World {
 
     this.player.draw();
     this.openings.forEach(o => o.draw());
-    this.currentRequestId = window.requestAnimationFrame(this.draw.bind(this));
+
+    // collisions
+    const gameOver = this.openings.some((opening) => {
+      const topBlock = opening.getTop();
+      const bottomBlock = opening.getBottom();
+      return isColliding(this.player.getBody(), topBlock) || isColliding(this.player.getBody(), bottomBlock);
+    });
+    if (gameOver) {
+      this.player.kill();
+      return;
+    }
+
+    this.currentRequestId = window.requestAnimationFrame(this.tick.bind(this));
   }
 }
 
