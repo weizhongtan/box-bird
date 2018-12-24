@@ -1,5 +1,5 @@
 import Square from './Square';
-import Rectangle from './Rectangle';
+import Opening from './Opening';
 import { isColliding, isRightOf, random } from './utils';
 
 class World {
@@ -9,8 +9,9 @@ class World {
     this.height = height;
     this.currentRequestId = null;
     this.frame = null;
-    this.bird = null;
-    this.blocks = null;
+    this.player = null;
+    this.openings = null;
+    this.justPassedOpening = false;
   }
 
   start() {
@@ -18,30 +19,20 @@ class World {
     this.draw();
     window.onkeypress = (e) => {
       if (e.keyCode === 32) {
-        this.bird.yVel = -5;
+        this.player.yVel = -5;
       }
     };
   }
 
   generateRandomOpening() {
-    const height = random(this.height / 3, (this.height / 3) * 2);
-    const width = 30;
-    const gap = random(125, 150);
-
-    const topBlock = new Rectangle(this.ctx, {
-      width,
-      height: height - (gap / 2),
-      x: this.width,
-    });
-    topBlock.xVel = -2;
-    const bottomBlock = new Rectangle(this.ctx, {
-      width,
+    const opening = new Opening(this.ctx, {
+      width: 30,
       height: this.height,
+      gapSize: random(125, 150),
+      gapHeight: random(this.height / 3, (this.height / 3) * 2),
       x: this.width,
-      y: height + (gap / 2),
     });
-    bottomBlock.xVel = -2;
-    return [topBlock, bottomBlock];
+    return opening;
   }
 
   clear() {
@@ -51,32 +42,32 @@ class World {
   init() {
     window.cancelAnimationFrame(this.currentRequestId);
     this.frame = 0;
-    this.bird = new Square(this.ctx, { length: 20, x: this.width / 10, y: this.height / 2 });
-    this.bird.addGravity();
-    this.blocks = [];
-    this.blocks.push(...this.generateRandomOpening());
+    this.player = new Square(this.ctx, { length: 20, x: this.width / 10, y: this.height / 2 });
+    this.player.addGravity();
+    this.openings = [];
+    this.openings.push(this.generateRandomOpening());
     this.score = 0;
   }
 
   calc() {
-    this.bird.calc();
-    this.blocks.forEach(block => block.calc());
+    this.player.calc();
+    this.openings.forEach(o => o.calc());
 
     // lower boundary
-    if (this.bird.y + this.bird.yVel + this.bird.height > this.height) {
-      this.bird.yVel = 0;
-      this.bird.y = this.height - this.bird.height;
+    if (this.player.y + this.player.yVel + this.player.height > this.height) {
+      this.player.yVel = 0;
+      this.player.y = this.height - this.player.height;
     }
 
     // upper boundary
-    if (this.bird.y < 0) {
-      this.bird.y = 0;
+    if (this.player.y < 0) {
+      this.player.y = 0;
     }
 
     // generate new openings
     if (this.frame % 100 === 0) {
       console.log('generating new block');
-      this.blocks.push(...this.generateRandomOpening());
+      this.openings.push(this.generateRandomOpening());
     }
   }
 
@@ -86,28 +77,35 @@ class World {
     this.calc();
 
     // collisions
-    const gameOver = this.blocks.some(block => isColliding(this.bird, block));
+    const gameOver = this.openings.some((opening) => {
+      const topBlock = opening.getTop();
+      const bottomBlock = opening.getBottom();
+      return isColliding(this.player, topBlock) || isColliding(this.player, bottomBlock);
+    });
     if (gameOver) {
       this.init();
       this.draw();
       return;
     }
 
-    // increment score
-    const numLeft = this.blocks.reduce((sum, block) => {
-      if (isRightOf(this.bird, block)) {
-        return sum + 1;
-      }
-      return sum;
-    }, 0);
+    // increment score if past bird
+    const leftMostBlock = this.openings[0].getTop();
+    if (isRightOf(this.player, leftMostBlock) && !this.justPassedOpening) {
+      this.score++;
+      this.justPassedOpening = true;
+    }
 
-    // half because 2 blocks per opening
-    this.score = numLeft / 2;
+    // remove the opening if it's off screen
+    if (isRightOf({ x: 0, width: 0 }, leftMostBlock)) {
+      this.justPassedOpening = false;
+      this.openings.shift();
+    }
+
     this.ctx.font = '50px sans-serif';
     this.ctx.fillText(this.score, 10, 50);
 
-    this.bird.draw();
-    this.blocks.forEach(t => t.draw());
+    this.player.draw();
+    this.openings.forEach(o => o.draw());
     this.currentRequestId = window.requestAnimationFrame(this.draw.bind(this));
   }
 }
